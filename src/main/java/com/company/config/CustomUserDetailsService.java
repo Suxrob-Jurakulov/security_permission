@@ -1,7 +1,7 @@
 package com.company.config;
 
-import com.company.entity.UserEntity;
-import com.company.repository.UserRepository;
+import com.company.domains.Profile;
+import com.company.repository.ProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -14,16 +14,16 @@ import java.util.Optional;
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private UserRepository userRepository;
+    private ProfileRepository profileRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<UserEntity> user = userRepository.findByUsernameAndStateIsTrue(username);
+    public UserDetails loadUserByUsername(String profileId) throws UsernameNotFoundException {
+        Optional<Profile> user = profileRepository.findByIdAndDeletedIsFalse(profileId);
         if (user.isEmpty()) {
             throw new UsernameNotFoundException("User not found");
         }
         return user.map((CustomUserDetails::new))
-                .orElseThrow(() -> new UsernameNotFoundException("User not found " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found " + profileId));
 
     }
 }

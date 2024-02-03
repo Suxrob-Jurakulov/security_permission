@@ -1,79 +1,64 @@
 package com.company.service;
 
-import com.company.config.JwtService;
-import com.company.dto.UserAccountDto;
-import com.company.dto.UserDto;
-import com.company.entity.UserEntity;
+import com.company.domains.Profile;
+import com.company.dto.ProfileDto;
 import com.company.enums.Role;
-import com.company.form.LoginForm;
-import com.company.form.UserForm;
-import com.company.repository.UserRepository;
+import com.company.form.ProfileForm;
+import com.company.repository.ProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final UserRepository repository;
-    private final JwtService jwtService;
+    private final ProfileRepository repository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public UserDto saveUser(UserForm form) {
-        UserEntity entity = new UserEntity();
-
-        entity.setUsername(form.getUsername());
-        entity.setPassword(passwordEncoder.encode(form.getPassword()));
-        entity.setRole(Role.ROLE_USER);
-        entity.setCreateAt(LocalDateTime.now());
-        entity.setModules(form.getModules());
-        entity.setState(true);
-
-        repository.save(entity);
-        return map(entity);
-    }
-
-
-    @Override
-    public UserDto login(LoginForm form) {
-        String jwt = jwtService.generateToken(form.getUsername());
-
-        UserDto dto = new UserDto();
-        dto.setUsername(form.getUsername());
-        dto.setJwt(jwt);
-        return dto;
+    public ProfileDto check(String username) {
+        Optional<Profile> profileOpt = repository.findByUsernameAndDeletedIsFalse(username);
+        return profileOpt.map(this::map).orElse(null);
     }
 
     @Override
-    public UserAccountDto getUser(String username) {
-        Optional<UserEntity> opt = repository.findByUsernameAndStateIsTrue(username);
-        if (opt.isPresent()) {
-            UserEntity entity = opt.get();
+    public ProfileDto getById(String id) {
+        Optional<Profile> profileOpt = repository.findByIdAndDeletedIsFalse(id);
 
-            UserAccountDto dto = new UserAccountDto();
-
-            dto.setId(entity.getId());
-            dto.setUsername(entity.getUsername());
-            dto.setCreatedAt(entity.getCreateAt());
-            dto.setModules(entity.getModules());
-            return dto;
-        }
-        return null;
+        return profileOpt.map(this::map).orElse(null);
     }
 
+    @Override
+    public ProfileDto add(ProfileForm form) {
+        Profile profile = new Profile();
+
+        profile.setId(UUID.randomUUID().toString());
+        profile.setUsername(form.getUsername());
+        profile.setPassword(passwordEncoder.encode(form.getPassword()));
+        profile.setRole(Role.ROLE_USER);
+        profile.setCreatedDate(LocalDateTime.now());
+        profile.setModules(form.getModules());
+        profile.setDeleted(false);
+
+        repository.save(profile);
+        return map(profile);
+    }
 
     // MAPPER
-    private UserDto map(UserEntity entity) {
-        UserDto dto = new UserDto();
-        dto.setId(entity.getId());
-        dto.setUsername(entity.getUsername());
-        dto.setCreatedAt(entity.getCreateAt());
-        dto.setModules(entity.getModules());
+    private ProfileDto map(Profile profile) {
+        ProfileDto dto = new ProfileDto();
+
+        dto.setId(profile.getId());
+        dto.setUsername(profile.getUsername());
+        dto.setPassword(profile.getPassword());
+        dto.setCreatedDate(profile.getCreatedDate());
+        dto.setModules(profile.getModules());
+
         return dto;
     }
 

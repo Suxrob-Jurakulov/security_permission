@@ -1,22 +1,19 @@
 package com.company.controller;
 
-import com.company.config.JwtService;
-import com.company.dto.UserAccountDto;
-import com.company.dto.UserDto;
-import com.company.entity.UserEntity;
+import com.company.dto.JwtDto;
+import com.company.dto.ProfileDto;
+import com.company.dto.TokenDto;
 import com.company.exp.BadRequestException;
-import com.company.form.LoginForm;
-import com.company.form.UserForm;
-import com.company.repository.UserRepository;
+import com.company.form.ProfileForm;
 import com.company.service.AuthService;
+import com.company.service.TokensService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/auth")
@@ -24,43 +21,46 @@ import java.util.Optional;
 public class AuthController {
 
     private final AuthService service;
-    private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final JwtService jwtService;
+    private final TokensService tokensService;
+    private final PasswordEncoder encoder;
 
-    private void checkUsername(String username) {
-        Optional<UserEntity> optional = userRepository.findByUsernameAndStateIsTrue(username);
-        if (optional.isPresent()) {
-            throw new BadRequestException("This username is busy");
-        }
+    private ProfileDto check(String username) {
+        return service.check(username);
     }
 
+
     @PostMapping("/register")
-    public ResponseEntity<UserDto> register(@RequestBody UserForm form) {
+    public ResponseEntity<ProfileDto> register(@RequestBody ProfileForm form) {
 
-        checkUsername(form.getUsername());
+        // Check profile in Database
+        ProfileDto profile = check(form.getUsername());
+        if (profile != null) {
+            throw new BadRequestException("This username is busy!");
+        }
 
-        return ResponseEntity.ok().body(service.saveUser(form));
+        return ResponseEntity.ok().body(service.add(form));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserDto> login(@RequestBody LoginForm form) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(form.getUsername(), form.getPassword()));
-        if (!auth.isAuthenticated()) {
-            throw new BadRequestException("Invalid user request");
+    public ResponseEntity<JwtDto> login(@RequestBody ProfileForm form) {
+
+        // Check profile in Database
+        ProfileDto profile = check(form.getUsername());
+        if (profile == null) {
+            throw new BadRequestException("User not found!");
         }
 
-        UserDto dto = service.login(form);
+        // Check password
+        if (!encoder.matches(form.getPassword(), profile.getPassword())) {
+            throw new BadRequestException("Wrong password!");
+        }
 
-        return ResponseEntity.ok(dto);
-    }
+        form.setProfile(profile);
 
+        // Create and save token
+        TokenDto dto = tokensService.add(form.getProfile());
 
-    @GetMapping("/profile")
-    public ResponseEntity<UserAccountDto> getUserProfile(@RequestHeader("Authorization") String authHeader) {
-        String username = jwtService.extractUsername(authHeader.substring(7));
-        return ResponseEntity.ok(service.getUser(username));
+        return ResponseEntity.ok(new JwtDto(dto.getUid(), dto.getAccessToken(), dto.getRefreshToken()));
     }
 
 }

@@ -1,16 +1,15 @@
 package com.company.service;
 
-import com.company.dto.UserAccountDto;
-import com.company.dto.UserDto;
+import com.company.dto.ProfileAccountDto;
+import com.company.dto.ProfileDto;
 import com.company.form.LoginForm;
-import com.company.form.UserForm;
+import com.company.form.ProfileForm;
 
 public interface AuthService {
 
-    UserDto saveUser(UserForm form);
+    ProfileDto check(String username);
 
-    UserDto login(LoginForm form);
+    ProfileDto add(ProfileForm form);
 
-    UserAccountDto getUser(String username);
-
+    ProfileDto getById(String id);
 }

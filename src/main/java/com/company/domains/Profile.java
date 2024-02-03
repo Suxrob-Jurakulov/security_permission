@@ -1,4 +1,4 @@
-package com.company.entity;
+package com.company.domains;
 
 import com.company.dto.ProfileModuleDto;
 import com.company.enums.Role;
@@ -14,16 +14,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserEntity {
+public class Profile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private String id;
 
     @Column(nullable = false)
     private String username;
@@ -36,10 +34,10 @@ public class UserEntity {
     private Role role;
 
     @Column
-    private LocalDateTime createAt;
+    private LocalDateTime createdDate;
 
     @Column
-    private Boolean state;
+    private Boolean deleted;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")

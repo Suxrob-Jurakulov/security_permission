@@ -1,4 +1,6 @@
 spring:
+
+  # Database
   datasource:
     url: jdbc:postgresql://localhost:5432/security_permission
     username: postgres
@@ -7,3 +9,15 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+  # PORT
+server:
+  port: 8080
+
+  # Token expired date
+tokens:
+  access:
+    expiration-time: 200
+  refresh:
+    expiration-time: 1000
+  sign-key: 6250655367566B5970337336763979244226452948404D635166546A576D5A71

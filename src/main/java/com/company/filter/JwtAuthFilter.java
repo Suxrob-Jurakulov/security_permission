@@ -1,10 +1,12 @@
 package com.company.filter;
 
+import com.company.config.CustomUserDetails;
 import com.company.config.CustomUserDetailsService;
-import com.company.config.JwtService;
 import com.company.dto.AuthBasicDto;
 import com.company.exp.BadRequestException;
 import com.company.helper.JsonHelper;
+import com.company.helper.JwtHelper;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,7 +33,7 @@ import java.util.Base64;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private final JwtHelper jwtHelper;
     private final CustomUserDetailsService customUserDetailsService;
 
     @Override
@@ -65,12 +68,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             else if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
 
-                String username = jwtService.extractUsername(token);
+                String profileId = jwtHelper.extractUserId(token);
 
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    userDetails = customUserDetailsService.loadUserByUsername(username);
+                if (profileId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    userDetails = customUserDetailsService.loadUserByUsername(profileId);
 
-                    if (jwtService.validateToken(token, userDetails)) {
+                    if (jwtHelper.validateToken(token, (CustomUserDetails) userDetails)) {
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -82,7 +85,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
             }
 
-        } catch (UsernameNotFoundException | BadRequestException ex) {
+        } catch (UsernameNotFoundException | BadRequestException | BadCredentialsException | ExpiredJwtException ex) {
             response.setCharacterEncoding("UTF-8");
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setStatus(HttpStatus.UNAUTHORIZED.value());

@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UserAccountDto {
+public class ProfileAccountDto {
 
     private Integer id;
     private String username;
